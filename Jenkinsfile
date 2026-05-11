@@ -77,7 +77,7 @@ pipeline {
                         sh "rm -rf idir coverity-report coverity_results.json"
                
                         sh "${covBin}/coverity capture --project-dir . --dir idir"
-                        sh "${covBin}/cov-analyze --dir idir --all --webapp-security --spotbugs-max-mem 4096 --strip-path \$(pwd)"
+                        sh "${covBin}/cov-analyze --dir idir --all --webapp-security --spotbugs-max-mem 8192 --strip-path \$(pwd)"
 
                         sh """
                             ${covBin}/cov-commit-defects --dir idir \\
