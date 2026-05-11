@@ -15,7 +15,7 @@ pipeline {
         WOLF_PROD_PORT = "9092"
         
         SEEKER_SERVER_URL  = "http://192.168.12.190:8082"
-        SEEKER_PROJECT_KEY = "webgoat-2025-demo"
+        SEEKER_PROJECT_KEY = "wedgoat-v2"
      
         JENKINS_NODE_COOKIE = "dontKillMe"
         TZ = "Asia/Ho_Chi_Minh"
@@ -44,12 +44,12 @@ pipeline {
                     withCredentials([string(credentialsId: 'blackduck-api-token', variable: 'BLACKDUCK_API_TOKEN')]) {
                         sh """
                             curl -k -SL -O https://detect.blackduck.com/detect10.sh && chmod +x detect10.sh
-                       
+                    
                             ./detect10.sh \\
                                 --blackduck.url="https://192.168.12.204" \\
                                 --blackduck.api.token="\$BLACKDUCK_API_TOKEN" \\
                                 --blackduck.trust.cert=true \\
-                                --detect.project.name="${SEEKER_PROJECT_KEY}" \\
+                                --detect.project.name="${SEEKER_PROJECT_KEY}-v2" \\
                                 --detect.project.version.name="latest" \\
                                 --detect.binary.scan.file.path="${env.WEBGOAT_JAR}" \\
                                 --detect.tools=DETECTOR,SIGNATURE_SCAN,BINARY_SCAN
@@ -75,16 +75,16 @@ pipeline {
                         def covUrl = "http://192.168.12.191:8081"
 
                         sh "rm -rf idir coverity-report coverity_results.json"
-                        
+               
                         sh "${covBin}/coverity capture --project-dir . --dir idir"
                         sh "${covBin}/cov-analyze --dir idir --all --webapp-security --strip-path \$(pwd)"
 
                         sh """
-                            ${covBin}/cov-commit-defects --dir idir \
-                            --url ${covUrl} \
-                            --stream webgoat-stream \
-                            --user \$COV_USER --password \$COV_PASS \
-                            --version "${buildVer}" \
+                            ${covBin}/cov-commit-defects --dir idir \\
+                            --url ${covUrl} \\
+                            --stream wedgoat-v2-stream \\
+                            --user \$COV_USER --password \$COV_PASS \\
+                            --version "${buildVer}" \\
                             --description "WebGoat Build ${env.BUILD_NUMBER}" 
                         """
                         
@@ -122,7 +122,7 @@ pipeline {
                                 --blackduck.url="https://192.168.12.204" \\
                                 --blackduck.api.token="\$BLACKDUCK_API_TOKEN" \\
                                 --blackduck.trust.cert=true \\
-                                --detect.project.name="${SEEKER_PROJECT_KEY}-docker" \\
+                                --detect.project.name="${SEEKER_PROJECT_KEY}-v2-docker" \\
                                 --detect.project.version.name="latest" \\
                                 --detect.container.scan.file.path="webgoat-docker.tar" \\
                                 --detect.tools=CONTAINER_SCAN
