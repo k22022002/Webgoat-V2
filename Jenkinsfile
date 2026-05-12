@@ -54,6 +54,7 @@ pipeline {
                                 --detect.excluded.detector.types=GIT \
                                 --detect.binary.scan.file.path="${env.WEBGOAT_JAR}" \
                                 --detect.tools=DETECTOR,SIGNATURE_SCAN,BINARY_SCAN
+                        """
                     }
                 }
             }
