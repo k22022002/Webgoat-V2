@@ -51,6 +51,7 @@ pipeline {
                                 --blackduck.trust.cert=true \
                                 --detect.project.name="${SEEKER_PROJECT_KEY}" \
                                 --detect.project.version.name="Build-${env.BUILD_NUMBER}" \
+                                --detect.project.codelocation.prefix="v2-Build-${env.BUILD_NUMBER}" \
                                 --detect.binary.scan.file.path="${env.WEBGOAT_JAR}" \
                                 --detect.tools=DETECTOR,SIGNATURE_SCAN,BINARY_SCAN
                         """
@@ -118,13 +119,14 @@ pipeline {
                     
                     withCredentials([string(credentialsId: 'blackduck-api-token', variable: 'BLACKDUCK_API_TOKEN')]) {
                         sh """
-                            ./detect10.sh \\
-                                --blackduck.url="https://192.168.12.204" \\
-                                --blackduck.api.token="\$BLACKDUCK_API_TOKEN" \\
-                                --blackduck.trust.cert=true \\
-                                --detect.project.name="${SEEKER_PROJECT_KEY}-docker" \\
-                                --detect.project.version.name="Build-${env.BUILD_NUMBER}" \\
-                                --detect.container.scan.file.path="wedgoat-v2-docker.tar" \\
+                            ./detect10.sh \
+                                --blackduck.url="https://192.168.12.204" \
+                                --blackduck.api.token="\$BLACKDUCK_API_TOKEN" \
+                                --blackduck.trust.cert=true \
+                                --detect.project.name="${SEEKER_PROJECT_KEY}-docker" \
+                                --detect.project.version.name="Build-${env.BUILD_NUMBER}" \
+                                --detect.project.codelocation.prefix="v2-docker-Build-${env.BUILD_NUMBER}" \
+                                --detect.container.scan.file.path="wedgoat-v2-docker.tar" \
                                 --detect.tools=CONTAINER_SCAN
                         """
                     }
