@@ -109,11 +109,9 @@ pipeline {
                         echo "EXPOSE 8080" >> Dockerfile
                         echo "ENTRYPOINT [\\"java\\", \\"-jar\\", \\"/app/webgoat.jar\\"]" >> Dockerfile
                         
-                        // Đổi tên image và file tar sang v2
-                        docker build -t wedgoat-docker-demo-v2:latest .
-                        docker save -o wedgoat-v2-docker.tar wedgoat-docker-demo-v2:latest
-                        chmod 777 wedgoat-v2-docker.tar
-                        
+                        docker build -t wedgoat-docker-demo-v2:latest . 
+                        docker save -o wedgoat-v2-docker.tar wedgoat-docker-demo-v2:latest 
+                        chmod 777 wedgoat-v2-docker.tar 
                         docker rmi wedgoat-docker-demo-v2:latest || true
                     """
                     
