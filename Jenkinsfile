@@ -9,10 +9,10 @@ pipeline {
     }
 
     environment {
-        TEST_PORT = "9595"
-        WOLF_TEST_PORT = "9096" 
-        PROD_PORT = "8099"
-        WOLF_PROD_PORT = "9092"
+        TEST_PORT = "9596"
+        WOLF_TEST_PORT = "9097" 
+        PROD_PORT = "8100"
+        WOLF_PROD_PORT = "9093"
         
         SEEKER_SERVER_URL  = "http://192.168.12.190:8082"
         SEEKER_PROJECT_KEY = "wedgoat-v2"
@@ -108,26 +108,28 @@ pipeline {
                         echo "EXPOSE 8080" >> Dockerfile
                         echo "ENTRYPOINT [\\"java\\", \\"-jar\\", \\"/app/webgoat.jar\\"]" >> Dockerfile
                         
-                        docker build -t webgoat-docker-demo:latest .
-                        docker save -o webgoat-docker.tar webgoat-docker-demo:latest
-                        chmod 777 webgoat-docker.tar
+                        // Đổi tên image và file tar sang v2
+                        docker build -t wedgoat-docker-demo-v2:latest .
+                        docker save -o wedgoat-v2-docker.tar wedgoat-docker-demo-v2:latest
+                        chmod 777 wedgoat-v2-docker.tar
                         
-                        # Tối ưu: Xóa Image gốc khỏi Docker để tránh đầy ổ cứng
-                        docker rmi webgoat-docker-demo:latest || true
+                        docker rmi wedgoat-docker-demo-v2:latest || true
                     """
                     
                     withCredentials([string(credentialsId: 'blackduck-api-token', variable: 'BLACKDUCK_API_TOKEN')]) {
                         sh """
-                            ./detect10.sh \
-                                --blackduck.url="https://192.168.12.204" \
-                                --blackduck.api.token="\$BLACKDUCK_API_TOKEN" \
-                                --blackduck.trust.cert=true \
-                                --detect.project.name="${SEEKER_PROJECT_KEY}-docker" \
-                                --detect.project.version.name="Build-${env.BUILD_NUMBER}" \
-                                --detect.container.scan.file.path="webgoat-docker.tar" \
+                            ./detect10.sh \\
+                                --blackduck.url="https://192.168.12.204" \\
+                                --blackduck.api.token="\$BLACKDUCK_API_TOKEN" \\
+                                --blackduck.trust.cert=true \\
+                                --detect.project.name="${SEEKER_PROJECT_KEY}-docker" \\
+                                --detect.project.version.name="Build-${env.BUILD_NUMBER}" \\
+                                --detect.container.scan.file.path="wedgoat-v2-docker.tar" \\
                                 --detect.tools=CONTAINER_SCAN
                         """
                     }
+                    
+                    sh "rm -f wedgoat-v2-docker.tar Dockerfile"
                     
                     // Tối ưu: Dọn dẹp file rác ngay sau khi quét xong
                     sh "rm -f webgoat-docker.tar Dockerfile"
