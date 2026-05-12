@@ -45,13 +45,13 @@ pipeline {
                         sh """
                             curl -k -SL -O https://detect.blackduck.com/detect10.sh && chmod +x detect10.sh
                     
-                            ./detect10.sh \\
-                                --blackduck.url="https://192.168.12.204" \\
-                                --blackduck.api.token="\$BLACKDUCK_API_TOKEN" \\
-                                --blackduck.trust.cert=true \\
-                                --detect.project.name="${SEEKER_PROJECT_KEY}-v2" \\
-                                --detect.project.version.name="latest" \\
-                                --detect.binary.scan.file.path="${env.WEBGOAT_JAR}" \\
+                            ./detect10.sh \
+                                --blackduck.url="https://192.168.12.204" \
+                                --blackduck.api.token="\$BLACKDUCK_API_TOKEN" \
+                                --blackduck.trust.cert=true \
+                                --detect.project.name="${SEEKER_PROJECT_KEY}" \
+                                --detect.project.version.name="Build-${env.BUILD_NUMBER}" \
+                                --detect.binary.scan.file.path="${env.WEBGOAT_JAR}" \
                                 --detect.tools=DETECTOR,SIGNATURE_SCAN,BINARY_SCAN
                         """
                     }
@@ -118,13 +118,13 @@ pipeline {
                     
                     withCredentials([string(credentialsId: 'blackduck-api-token', variable: 'BLACKDUCK_API_TOKEN')]) {
                         sh """
-                            ./detect10.sh \\
-                                --blackduck.url="https://192.168.12.204" \\
-                                --blackduck.api.token="\$BLACKDUCK_API_TOKEN" \\
-                                --blackduck.trust.cert=true \\
-                                --detect.project.name="${SEEKER_PROJECT_KEY}-v2-docker" \\
-                                --detect.project.version.name="latest" \\
-                                --detect.container.scan.file.path="webgoat-docker.tar" \\
+                            ./detect10.sh \
+                                --blackduck.url="https://192.168.12.204" \
+                                --blackduck.api.token="\$BLACKDUCK_API_TOKEN" \
+                                --blackduck.trust.cert=true \
+                                --detect.project.name="${SEEKER_PROJECT_KEY}-docker" \
+                                --detect.project.version.name="Build-${env.BUILD_NUMBER}" \
+                                --detect.container.scan.file.path="webgoat-docker.tar" \
                                 --detect.tools=CONTAINER_SCAN
                         """
                     }
