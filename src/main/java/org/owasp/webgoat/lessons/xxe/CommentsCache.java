@@ -65,21 +65,19 @@ public class CommentsCache {
    * progress etc). In real life the XmlMapper bean defined above will be used automatically and the
    * Comment class can be directly used in the controller method (instead of a String)
    */
-  protected Comment parseXml(String xml, boolean securityEnabled)
-      throws XMLStreamException, JAXBException {
+  protected Comment parseXml(String xml) throws XMLStreamException, JAXBException {
     var jc = JAXBContext.newInstance(Comment.class);
     var xif = XMLInputFactory.newInstance();
 
-    // TODO fix me disabled for now.
-    if (securityEnabled) {
-      xif.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, ""); // Compliant
-      xif.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, ""); // compliant
-    }
+    // Vô hiệu hóa DTD và External Entities vô điều kiện để chống XXE
+    xif.setProperty(XMLInputFactory.SUPPORT_DTD, false); 
+    xif.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
 
     var xsr = xif.createXMLStreamReader(new StringReader(xml));
-
     var unmarshaller = jc.createUnmarshaller();
-    return (Comment) unmarshaller.unmarshal(xsr);
+    
+    // Dòng này giờ đã an toàn, vì xsr đã bị tước quyền gọi ra bên ngoài
+    return (Comment) unmarshaller.unmarshal(xsr); 
   }
 
   public void addComment(Comment comment, WebGoatUser user, boolean visibleForAllUsers) {

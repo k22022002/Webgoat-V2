@@ -10,6 +10,7 @@ import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed
 import static org.owasp.webgoat.container.assignments.AttackResultBuilder.success;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -32,30 +33,43 @@ public class SqlInjectionLesson3 implements AssignmentEndpoint {
     this.dataSource = dataSource;
   }
 
-  @PostMapping("/SqlInjection/attack3")
+// 1. Endpoint giờ chỉ nhận dữ liệu cụ thể, không nhận nguyên câu lệnh SQL
+  @PostMapping("/SqlInjection/attack3_secure")
   @ResponseBody
-  public AttackResult completed(@RequestParam String query) {
-    return injectableQuery(query);
+  public AttackResult completed(@RequestParam String newDepartment, @RequestParam String lastName) {
+    return secureQuery(newDepartment, lastName);
   }
 
-  protected AttackResult injectableQuery(String query) {
+  protected AttackResult secureQuery(String newDepartment, String lastName) {
+    // 2. Viết sẵn câu lệnh SQL an toàn với các dấu chấm hỏi (?)
+    String updateQuery = "UPDATE employees SET department = ? WHERE last_name = ?";
+
     try (Connection connection = dataSource.getConnection()) {
-      try (Statement statement =
-          connection.createStatement(TYPE_SCROLL_INSENSITIVE, CONCUR_READ_ONLY)) {
-        Statement checkStatement =
-            connection.createStatement(TYPE_SCROLL_INSENSITIVE, CONCUR_READ_ONLY);
-        statement.executeUpdate(query);
-        ResultSet results =
-            checkStatement.executeQuery("SELECT * FROM employees WHERE last_name='Barnett';");
+      
+      // 3. Khởi tạo PreparedStatement thay vì Statement thường
+      try (PreparedStatement pstmt = connection.prepareStatement(updateQuery)) {
+        
+        // 4. Gán dữ liệu vào các tham số an toàn
+        pstmt.setString(1, newDepartment);
+        pstmt.setString(2, lastName);
+        
+        // 5. Thực thi câu lệnh đã được chuẩn bị
+        pstmt.executeUpdate();
+
+        // -------------------------------------------------------------
+        // Phần code kiểm tra kết quả bên dưới để hoàn thành bài học
+        // -------------------------------------------------------------
+        Statement checkStatement = connection.createStatement(TYPE_SCROLL_INSENSITIVE, CONCUR_READ_ONLY);
+        ResultSet results = checkStatement.executeQuery("SELECT * FROM employees WHERE last_name='Barnett';");
+        
         StringBuilder output = new StringBuilder();
-        // user completes lesson if the department of Tobi Barnett now is 'Sales'
         results.first();
         if (results.getString("department").equals("Sales")) {
-          output.append("<span class='feedback-positive'>" + query + "</span>");
+          output.append("<span class='feedback-positive'>Cập nhật thành công bằng PreparedStatement</span>");
           output.append(SqlInjectionLesson8.generateTable(results));
           return success(this).output(output.toString()).build();
         } else {
-          return failed(this).output(output.toString()).build();
+          return failed(this).output("Cập nhật không thành công.").build();
         }
 
       } catch (SQLException sqle) {
