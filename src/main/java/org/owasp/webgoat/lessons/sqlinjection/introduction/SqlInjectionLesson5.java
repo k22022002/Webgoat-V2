@@ -4,21 +4,21 @@
  */
 package org.owasp.webgoat.lessons.sqlinjection.introduction;
 
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed;
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.success;
+
+import jakarta.annotation.PostConstruct;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
 import org.owasp.webgoat.container.LessonDataSource;
 import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
 import org.owasp.webgoat.container.assignments.AssignmentHints;
 import org.owasp.webgoat.container.assignments.AttackResult;
-import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed;
-import static org.owasp.webgoat.container.assignments.AttackResultBuilder.success;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
-
-import jakarta.annotation.PostConstruct;
 
 @RestController
 @AssignmentHints(
@@ -38,6 +38,8 @@ public class SqlInjectionLesson5 implements AssignmentEndpoint {
 
   @PostConstruct
   public void createUser() {
+    // HSQLDB does not support CREATE USER with IF NOT EXISTS so we need to do it in code (using
+    // DROP first will throw error if user does not exists)
     try (Connection connection = dataSource.getConnection()) {
       try (var statement =
           connection.prepareStatement("CREATE USER unauthorized_user PASSWORD test")) {
@@ -57,28 +59,19 @@ public class SqlInjectionLesson5 implements AssignmentEndpoint {
 
   protected AttackResult injectableQuery(String query) {
     try (Connection connection = dataSource.getConnection()) {
-        
-      // ĐOẠN CODE VÁ LỖI:
-      // Không dùng statement.executeQuery(query) nữa để tránh Seeker báo Critical.
-      // Thay vào đó, kiểm tra logic chuỗi đầu vào.
-      if (query != null && query.toUpperCase().contains("GRANT") && query.toUpperCase().contains("UNAUTHORIZED_USER")) {
-          // Nếu đúng ý đồ bài lab, thực thi lệnh tĩnh (hardcode) an toàn
-          try (Statement safeStmt = connection.createStatement()) {
-              safeStmt.execute("GRANT ALL ON GRANT_RIGHTS TO UNAUTHORIZED_USER");
-          }
+      try (Statement statement =
+          connection.createStatement(
+              ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+        statement.executeQuery(query);
+        if (checkSolution(connection)) {
+          return success(this).build();
+        }
+        return failed(this).output("Your query was: " + query).build();
       }
-
-      // Kiểm tra xem user đã có quyền chưa (logic gốc của WebGoat)
-      if (checkSolution(connection)) {
-        return success(this).build();
-      }
-      
-      // Xóa biến 'query' ra khỏi thông báo lỗi trả về để phòng thêm lỗi XSS (Cross-Site Scripting)
-      return failed(this).output("Thao tác thất bại. Bạn hãy thử dùng lệnh GRANT để cấp quyền nhé!").build();
-      
     } catch (Exception e) {
       return failed(this)
-          .output(this.getClass().getName() + " : " + e.getMessage())
+          .output(
+              this.getClass().getName() + " : " + e.getMessage() + "<br> Your query was: " + query)
           .build();
     }
   }

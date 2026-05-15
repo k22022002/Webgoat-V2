@@ -105,7 +105,7 @@
     <webwolf.port>9090</webwolf.port>
     <wiremock.version>3.13.1</wiremock.version>
     <xml-resolver.version>1.2</xml-resolver.version>
-    <xstream.version>1.4.5</xstream.version>
+    <xstream.version>1.4.21</xstream.version>
     <!-- do not update necessary for lesson -->
     <zxcvbn.version>1.9.0</zxcvbn.version>
   </properties>
@@ -122,6 +122,16 @@
         <artifactId>asciidoctorj</artifactId>
         <version>${asciidoctorj.version}</version>
       </dependency>
+      <dependency>
+          <groupId>org.apache.dubbo</groupId>
+          <artifactId>dubbo</artifactId>
+          <version>2.7.33</version> 
+      </dependency>
+      <dependency>
+            <groupId>com.thoughtworks.xstream</groupId>
+            <artifactId>xstream</artifactId>
+            <version>1.4.21</version>
+        </dependency>
       <dependency>
         <!-- jsoup HTML parser library @ https://jsoup.org/ -->
         <groupId>org.jsoup</groupId>

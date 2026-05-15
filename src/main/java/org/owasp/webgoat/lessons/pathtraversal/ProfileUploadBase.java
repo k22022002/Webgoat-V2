@@ -12,6 +12,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
@@ -45,10 +47,21 @@ public class ProfileUploadBase implements AssignmentEndpoint {
       return failed(this).feedback("path-traversal-profile-empty-name").build();
     }
 
-    File uploadDirectory = cleanupAndCreateDirectoryForUser(username);
-
     try {
-      var uploadedFile = new File(uploadDirectory, fullName);
+      File uploadDirectory = cleanupAndCreateDirectoryForUser(username);
+
+      // --- VÁ LỖ HỔNG 1: Kiểm tra an toàn cho tên file (fullName) ---
+      Path uploadDirPath = uploadDirectory.toPath().normalize();
+      Path targetFilePath = uploadDirPath.resolve(fullName).normalize();
+
+      // Ngăn chặn fullName chứa "../../" thoát ra khỏi thư mục upload
+      if (!targetFilePath.startsWith(uploadDirPath)) {
+        return failed(this).output("Phát hiện tấn công Path Traversal trong tên file!").build();
+      }
+      
+      File uploadedFile = targetFilePath.toFile();
+      // ----------------------------------------------------------------
+
       uploadedFile.createNewFile();
       FileCopyUtils.copy(file.getBytes(), uploadedFile);
 
@@ -60,14 +73,25 @@ public class ProfileUploadBase implements AssignmentEndpoint {
           .feedbackArgs(uploadedFile.getAbsoluteFile())
           .build();
 
-    } catch (IOException e) {
+    } catch (IOException | SecurityException e) {
       return failed(this).output(e.getMessage()).build();
     }
   }
 
   @SneakyThrows
   protected File cleanupAndCreateDirectoryForUser(String username) {
-    var uploadDirectory = new File(this.webGoatHomeDirectory, "/PathTraversal/" + username);
+    // --- VÁ LỖ HỔNG 2: Kiểm tra an toàn cho thư mục người dùng (username) ---
+    Path baseDirPath = Paths.get(this.webGoatHomeDirectory, "PathTraversal").normalize();
+    Path targetUserPath = baseDirPath.resolve(username).normalize();
+
+    // Ngăn chặn username chứa "../../" gây xóa/tạo sai thư mục
+    if (!targetUserPath.startsWith(baseDirPath)) {
+      throw new SecurityException("Phát hiện tấn công Path Traversal trong tên người dùng!");
+    }
+    
+    var uploadDirectory = targetUserPath.toFile();
+    // ------------------------------------------------------------------------
+
     if (uploadDirectory.exists()) {
       FileSystemUtils.deleteRecursively(uploadDirectory);
     }
@@ -100,7 +124,18 @@ public class ProfileUploadBase implements AssignmentEndpoint {
   }
 
   protected byte[] getProfilePictureAsBase64(String username) {
-    var profilePictureDirectory = new File(this.webGoatHomeDirectory, "/PathTraversal/" + username);
+    // --- VÁ LỖ HỔNG 3: Ngăn chặn đọc file trái phép ---
+    Path baseDirPath = Paths.get(this.webGoatHomeDirectory, "PathTraversal").normalize();
+    Path targetUserPath = baseDirPath.resolve(username).normalize();
+
+    // Nếu phát hiện ../../ nhảy ra ngoài, trả về ảnh mặc định ngay lập tức
+    if (!targetUserPath.startsWith(baseDirPath)) {
+        return defaultImage();
+    }
+
+    var profilePictureDirectory = targetUserPath.toFile();
+    // ---------------------------------------------------
+
     var profileDirectoryFiles = profilePictureDirectory.listFiles();
 
     if (profileDirectoryFiles != null && profileDirectoryFiles.length > 0) {

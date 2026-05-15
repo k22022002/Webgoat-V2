@@ -53,35 +53,43 @@ public class SqlInjectionLesson9 implements AssignmentEndpoint {
             + "' AND auth_tan = '"
             + auth_tan
             + "'";
+            
+    // Connection đã được quản lý tốt bằng try-with-resources
     try (Connection connection = dataSource.getConnection()) {
-      // V2019_09_26_7__employees.sql
       int oldMaxSalary = this.getMaxSalary(connection);
       int oldSumSalariesOfOtherEmployees = this.getSumSalariesOfOtherEmployees(connection);
+      
       // begin transaction
       connection.setAutoCommit(false);
-      // do injectable query
-      Statement statement = connection.createStatement(TYPE_SCROLL_SENSITIVE, CONCUR_UPDATABLE);
-      SqlInjectionLesson8.log(connection, queryInjection);
-      statement.execute(queryInjection);
+      
+      // [VÁ LỖI] Quản lý an toàn Statement thực thi query bằng try-with-resources
+      try (Statement statement = connection.createStatement(TYPE_SCROLL_SENSITIVE, CONCUR_UPDATABLE)) {
+          SqlInjectionLesson8.log(connection, queryInjection);
+          statement.execute(queryInjection);
+      } // <--- Statement tự động đóng sau khi block này kết thúc
+
       // check new sum of salaries other employees and new salaries of John
       int newJohnSalary = this.getJohnSalary(connection);
       int newSumSalariesOfOtherEmployees = this.getSumSalariesOfOtherEmployees(connection);
+      
       if (newJohnSalary > oldMaxSalary
           && newSumSalariesOfOtherEmployees == oldSumSalariesOfOtherEmployees) {
         // success commit
-        connection.commit(); // need execute not executeQuery
+        connection.commit(); 
         connection.setAutoCommit(true);
-        output.append(
-            SqlInjectionLesson8.generateTable(this.getEmployeesDataOrderBySalaryDesc(connection)));
+        // [VÁ LỖI] Gọi hàm lấy dữ liệu bảng HTML đã được refactor an toàn
+        output.append(this.getEmployeesTable(connection));
         return success(this).feedback("sql-injection.9.success").output(output.toString()).build();
       }
-      // failed roolback
+      
+      // failed rollback
       connection.rollback();
+      // [VÁ LỖI] Gọi hàm lấy dữ liệu bảng HTML đã được refactor an toàn
       return failed(this)
           .feedback("sql-injection.9.one")
-          .output(
-              SqlInjectionLesson8.generateTable(this.getEmployeesDataOrderBySalaryDesc(connection)))
+          .output(this.getEmployeesTable(connection))
           .build();
+          
     } catch (SQLException e) {
       return failed(this)
           .output("<br><span class='feedback-negative'>" + e.getMessage() + "</span>")
@@ -90,10 +98,12 @@ public class SqlInjectionLesson9 implements AssignmentEndpoint {
   }
 
   private int getSqlInt(Connection connection, String query) throws SQLException {
-    Statement statement = connection.createStatement(TYPE_SCROLL_SENSITIVE, CONCUR_UPDATABLE);
-    ResultSet results = statement.executeQuery(query);
-    results.first();
-    return results.getInt(1);
+    // [VÁ LỖI] Đảm bảo cả Statement và ResultSet đều tự động đóng khi return giá trị
+    try (Statement statement = connection.createStatement(TYPE_SCROLL_SENSITIVE, CONCUR_UPDATABLE);
+         ResultSet results = statement.executeQuery(query)) {
+        results.first();
+        return results.getInt(1);
+    } // <--- Cả ResultSet và Statement được dọn dẹp sạch sẽ
   }
 
   private int getMaxSalary(Connection connection) throws SQLException {
@@ -111,9 +121,12 @@ public class SqlInjectionLesson9 implements AssignmentEndpoint {
     return this.getSqlInt(connection, query);
   }
 
-  private ResultSet getEmployeesDataOrderBySalaryDesc(Connection connection) throws SQLException {
+  // [VÁ LỖI] Refactor thiết kế: Chuyển thẳng ResultSet sang String (HTML) để không bị rò rỉ bộ nhớ ra ngoài
+  private String getEmployeesTable(Connection connection) throws SQLException {
     String query = "SELECT * FROM employees ORDER BY salary DESC";
-    Statement statement = connection.createStatement(TYPE_SCROLL_SENSITIVE, CONCUR_UPDATABLE);
-    return statement.executeQuery(query);
+    try (Statement statement = connection.createStatement(TYPE_SCROLL_SENSITIVE, CONCUR_UPDATABLE);
+         ResultSet rs = statement.executeQuery(query)) {
+        return SqlInjectionLesson8.generateTable(rs);
+    } // <--- ResultSet được dùng xong và tự động đóng ngay lập tức
   }
 }

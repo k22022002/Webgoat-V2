@@ -1,0 +1,64 @@
+{
+  "configId": {
+    "id": "0330b3c4-c59d-4776-bc4d-055b20789977"
+  },
+  "scanType": {
+    "type": 5,
+    "name": "Coverity (.yaml, .json)",
+    "description": "Runs a comprehensive static analysis using coverity.yaml or coverity.json (if available). This is the preferred method for configuring new Coverity scans."
+  },
+  "coverityConfig": {
+    "installationLocation": {
+      "source": {
+        "type": 8
+      }
+    },
+    "configFilePath": {
+      "source": {
+        "type": 8
+      }
+    },
+    "additionalCaptureArguments": {
+      "source": {
+        "type": 8
+      }
+    },
+    "additionalAnalysisArguments": {
+      "source": {
+        "type": 8
+      }
+    },
+    "deleteIdirs": {
+      "source": {
+        "type": 8
+      }
+    }
+  },
+  "bridgeConfig": {},
+  "buildConfig": {
+    "buildCommand": {
+      "source": {
+        "type": 8
+      }
+    },
+    "cleanCommand": {
+      "source": {
+        "type": 8
+      }
+    }
+  },
+  "workingDirectory": {
+    "value": "C:\\Users\\Admin\\Downloads\\Webgoat-V2",
+    "source": {
+      "type": 8
+    }
+  },
+  "scanMode": {
+    "name": "All Files"
+  },
+  "path": {
+    "source": {
+      "type": 8
+    }
+  }
+}
