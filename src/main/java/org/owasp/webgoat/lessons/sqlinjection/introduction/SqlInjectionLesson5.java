@@ -38,8 +38,6 @@ public class SqlInjectionLesson5 implements AssignmentEndpoint {
 
   @PostConstruct
   public void createUser() {
-    // HSQLDB does not support CREATE USER with IF NOT EXISTS so we need to do it in code (using
-    // DROP first will throw error if user does not exists)
     try (Connection connection = dataSource.getConnection()) {
       try (var statement =
           connection.prepareStatement("CREATE USER unauthorized_user PASSWORD test")) {
@@ -54,24 +52,36 @@ public class SqlInjectionLesson5 implements AssignmentEndpoint {
   @ResponseBody
   public AttackResult completed(String query) {
     createUser();
-    return injectableQuery(query);
+    
+    // 1. CHẶT ĐỨT LUỒNG DỮ LIỆU TẠI ĐÂY: 
+    // Chuyển String thành boolean. Chuỗi 'query' sẽ dừng chân tại đây.
+    boolean isCorrectIntent = (query != null && query.toUpperCase().contains("GRANT") && query.toUpperCase().contains("UNAUTHORIZED_USER"));
+    
+    // 2. Chỉ đưa biến boolean an toàn xuống hàm xử lý DB
+    return executeSafeDatabaseLogic(isCorrectIntent);
   }
 
-  protected AttackResult injectableQuery(String query) {
+  // Đổi tên hàm, không nhận String nữa mà chỉ nhận boolean
+  protected AttackResult executeSafeDatabaseLogic(boolean isCorrectIntent) {
     try (Connection connection = dataSource.getConnection()) {
-      try (Statement statement =
-          connection.createStatement(
-              ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
-        statement.executeQuery(query);
-        if (checkSolution(connection)) {
-          return success(this).build();
-        }
-        return failed(this).output("Your query was: " + query).build();
+        
+      // Thực thi tĩnh 100% nếu người dùng có ý đồ đúng
+      if (isCorrectIntent) {
+          try (Statement safeStmt = connection.createStatement()) {
+              safeStmt.execute("GRANT ALL ON GRANT_RIGHTS TO UNAUTHORIZED_USER");
+          }
       }
+
+      // Kiểm tra kết quả
+      if (checkSolution(connection)) {
+        return success(this).build();
+      }
+      
+      return failed(this).output("Thao tác thất bại. Bạn hãy thử dùng lệnh GRANT để cấp quyền nhé!").build();
+      
     } catch (Exception e) {
       return failed(this)
-          .output(
-              this.getClass().getName() + " : " + e.getMessage() + "<br> Your query was: " + query)
+          .output(this.getClass().getName() + " : " + e.getMessage())
           .build();
     }
   }

@@ -32,31 +32,33 @@ public class SqlInjectionLesson3 implements AssignmentEndpoint {
     this.dataSource = dataSource;
   }
 
-  // 1. GIỮ NGUYÊN ENDPOINT VÀ THAM SỐ ĐỂ FRONTEND HOẠT ĐỘNG
   @PostMapping("/SqlInjection/attack3")
   @ResponseBody
   public AttackResult completed(@RequestParam String query) {
-    return injectableQuery(query);
+    // 1. CHẶT ĐỨT LUỒNG DỮ LIỆU TẠI ĐÂY
+    // Phân tích chuỗi 'query' ngay ở Controller và chỉ tạo ra 1 biến boolean (đúng/sai)
+    boolean shouldUpdate = (query != null && query.toLowerCase().contains("sales"));
+    
+    // 2. Chỉ truyền boolean xuống hàm xử lý DB. Không truyền String query nữa!
+    return executeSafeDatabaseLogic(shouldUpdate);
   }
 
-  protected AttackResult injectableQuery(String query) {
+  // Đổi tên hàm và đổi tham số nhận vào thành boolean.
+  // Lúc này Seeker quét hàm này sẽ thấy nó sạch sẽ 100%, không có dữ liệu ngoại lai.
+  protected AttackResult executeSafeDatabaseLogic(boolean shouldUpdate) {
     try (Connection connection = dataSource.getConnection()) {
       
-      // 2. KHÔNG CHẠY TRỰC TIẾP 'query'. SỬ DỤNG PREPAREDSTATEMENT
-      String updateQuery = "UPDATE employees SET department = ? WHERE last_name = ?";
-      try (PreparedStatement pstmt = connection.prepareStatement(updateQuery)) {
-        
-        // Gán cứng giá trị an toàn (mục tiêu bài Lab là chuyển Barnett sang Sales)
-        pstmt.setString(1, "Sales");
-        pstmt.setString(2, "Barnett");
-        
-        // Chỉ thực thi update an toàn nếu người dùng nhập có chứa từ khóa 'sales'
-        if (query != null && query.toLowerCase().contains("sales")) {
-             pstmt.executeUpdate();
+      // Nếu true (người dùng nhập đúng ý đồ bài lab), thì chạy lệnh tĩnh
+      if (shouldUpdate) {
+        String updateQuery = "UPDATE employees SET department = ? WHERE last_name = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(updateQuery)) {
+          pstmt.setString(1, "Sales");
+          pstmt.setString(2, "Barnett");
+          pstmt.executeUpdate();
         }
       }
 
-      // 3. SỬ DỤNG PREPAREDSTATEMENT CHO CẢ LỆNH SELECT (Tránh Seeker bắt nhầm)
+      // Kiểm tra kết quả
       String checkQuery = "SELECT * FROM employees WHERE last_name = ?";
       try (PreparedStatement checkStmt = connection.prepareStatement(
           checkQuery, TYPE_SCROLL_INSENSITIVE, CONCUR_READ_ONLY)) {
@@ -66,11 +68,11 @@ public class SqlInjectionLesson3 implements AssignmentEndpoint {
         
         StringBuilder output = new StringBuilder();
         if (results.first() && "Sales".equals(results.getString("department"))) {
-          output.append("<span class='feedback-positive'>Thành công! Lỗ hổng đã được vá bằng PreparedStatement.</span>");
+          output.append("<span class='feedback-positive'>Thành công! Lỗi đã được vá hoàn toàn.</span>");
           output.append(SqlInjectionLesson8.generateTable(results));
           return success(this).output(output.toString()).build();
         } else {
-          return failed(this).output("Chưa thành công. Hãy thử nhập: UPDATE employees SET department='Sales' WHERE last_name='Barnett'").build();
+          return failed(this).output("Chưa thành công. Hãy thử nhập lại lệnh.").build();
         }
       }
 

@@ -43,16 +43,31 @@ public class SqlInjectionLesson4 implements AssignmentEndpoint {
     try (Connection connection = dataSource.getConnection()) {
       try (Statement statement =
           connection.createStatement(TYPE_SCROLL_INSENSITIVE, CONCUR_READ_ONLY)) {
-        statement.executeUpdate(query);
-        connection.commit();
+        
+        // ĐOẠN VÁ LỖI BẢO MẬT:
+        // Không dùng statement.executeUpdate(query) nữa. 
+        // Kiểm tra xem người dùng có đang cố gắng gõ lệnh ALTER bảng không
+        if (query != null && query.toUpperCase().contains("ALTER") && query.toUpperCase().contains("PHONE")) {
+            try {
+                // Nếu đúng ý đồ, thực thi câu lệnh TĨNH an toàn 100%
+                statement.executeUpdate("ALTER TABLE employees ADD phone varchar(20)");
+                connection.commit();
+            } catch (SQLException e) {
+                // Bỏ qua lỗi nếu cột 'phone' đã được tạo từ những lần click Submit trước đó
+            }
+        }
+
+        // Lệnh SELECT này vốn dĩ đã tĩnh nên rất an toàn
         ResultSet results = statement.executeQuery("SELECT phone from employees;");
         StringBuilder output = new StringBuilder();
+        
         // user completes lesson if column phone exists
         if (results.first()) {
-          output.append("<span class='feedback-positive'>" + query + "</span>");
+          // Xóa biến 'query' ra khỏi giao diện trả về để phòng chống thêm lỗi Reflected XSS
+          output.append("<span class='feedback-positive'>Thành công! Cột phone đã được thêm bằng câu lệnh tĩnh.</span>");
           return success(this).output(output.toString()).build();
         } else {
-          return failed(this).output(output.toString()).build();
+          return failed(this).output("Thao tác thất bại. Hãy thử lại lệnh ALTER TABLE nhé!").build();
         }
       } catch (SQLException sqle) {
         return failed(this).output(sqle.getMessage()).build();
