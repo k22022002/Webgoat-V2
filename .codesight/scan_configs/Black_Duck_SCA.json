@@ -1,0 +1,45 @@
+{
+  "configId": {
+    "id": "b19fd538-aace-42f6-ae41-ba32f8b0cb31"
+  },
+  "scanType": {
+    "type": 4,
+    "name": "Black Duck SCA",
+    "description": "Scans open source components for known vulnerabilities, and policy violations."
+  },
+  "blackDuckConfig": {
+    "installationLocation": {
+      "source": {
+        "type": 8
+      }
+    },
+    "additionalArguments": {
+      "source": {
+        "type": 8
+      }
+    },
+    "configFilePath": {
+      "source": {
+        "type": 8
+      }
+    },
+    "searchDepth": {
+      "source": {
+        "type": 8
+      }
+    }
+  },
+  "bridgeConfig": {},
+  "buildConfig": {},
+  "workingDirectory": {
+    "value": "C:\\Users\\admin\\Webgoat-V2",
+    "source": {
+      "type": 8
+    }
+  },
+  "path": {
+    "source": {
+      "type": 8
+    }
+  }
+}
